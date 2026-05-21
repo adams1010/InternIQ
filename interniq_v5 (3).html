@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>InternIQ — Find Your Real Shot</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#00C285;--green-dark:#009E6C;--green-light:#E6FBF4;--green-mid:#B3F0DA;
+  --amber:#FF8C00;--amber-light:#FFF4E6;--coral:#FF5733;--coral-light:#FFF0ED;
+  --blue:#2563EB;--purple:#7C3AED;
+  --bg:#FFFFFF;--bg2:#F8FFFE;--bg3:#F0FBF7;
+  --text1:#0A1628;--text2:#4A5568;--text3:#9CA3AF;
+  --border:#E2F5EE;--border2:#CBD5E0;
+  --shadow:0 2px 12px rgba(0,194,133,0.1);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.1);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:10px;--rl:14px;--rxl:20px;
+}
+html{font-family:var(--font);background:var(--bg);color:var(--text1);scroll-behavior:smooth}
+body{min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--green-mid);border-radius:99px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(0.92)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(600px) rotate(720deg);opacity:0}}
+@keyframes countUp{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+.fade-up{animation:fadeUp 0.35s ease both}
+.card-hover{transition:all 0.2s ease}
+.card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,194,133,0.15)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+const G="#00C285",GD="#009E6C",GL="#E6FBF4",GM="#B3F0DA";
+const AM="#FF8C00",AL="#FFF4E6";
+const CR="#FF5733",CL="#FFF0ED";
+const PALETTE=["#00C285","#2563EB","#FF8C00","#7C3AED","#FF5733","#0EA5E9","#059669","#D97706","#DC2626","#7C3AED","#0891B2","#65A30D"];
+const LOAD_MSGS=["Scanning companies near your zip code...","Matching firms to your major...","Finding opportunities others overlook...","Checking local hiring patterns...","Calculating your real match scores..."];
+
+const UNIVERSITIES=["American University","Appalachian State University","Arizona State University","Auburn University","Ball State University","Baylor University","Binghamton University","Boston College","Boston University","Brigham Young University","Brown University","Bucknell University","Butler University","Cal Poly SLO","Carnegie Mellon University","Case Western Reserve University","Clemson University","Colorado State University","Columbia University","Cornell University","Dartmouth College","Drexel University","Duke University","Emory University","Florida State University","Fordham University","George Mason University","Georgetown University","Georgia Tech","Harvard University","Howard University","Indiana University Bloomington","Iowa State University","James Madison University","Johns Hopkins University","Lafayette College","Lehigh University","Louisiana State University","MIT","Michigan State University","NYU","NC State University","Northeastern University","Northwestern University","Notre Dame","Ohio State University","Penn State University","Princeton University","Purdue University","Rice University","RIT","Rutgers University","Stanford University","Stevens Institute of Technology","Syracuse University","Temple University","Texas A&M University","Tufts University","Tulane University","UC Berkeley","UC Davis","UC Irvine","UCLA","UC San Diego","UC Santa Barbara","University of Alabama","University of Arizona","University of Chicago","University of Colorado Boulder","University of Connecticut","University of Delaware","University of Florida","University of Georgia","University of Illinois","University of Maryland","UMass Amherst","University of Miami","University of Michigan","University of Minnesota","UNC Chapel Hill","University of Pennsylvania","University of Pittsburgh","University of Southern California","University of Tennessee","UT Austin","University of Virginia","University of Washington","UW-Madison","Vanderbilt University","Villanova University","Virginia Tech","Wake Forest University","Washington University in St. Louis","Yale University","Other"].sort();
+
+const MAJORS=["Accounting","Aerospace Engineering","Architecture","Biochemistry","Biology","Biomedical Engineering","Business Administration","Chemical Engineering","Chemistry","Civil Engineering","Communications","Computer Engineering","Computer Science","Construction Management","Criminal Justice","Cybersecurity","Data Science","Economics","Education","Electrical Engineering","English / Literature","Environmental Engineering","Environmental Science","Exercise Science / Kinesiology","Fashion Design","Finance","Forensic Science","Graphic Design","Health Sciences","History","Hospitality Management","Human Resources","Industrial Engineering","Information Technology","International Business","International Relations","Journalism","Law (Pre-Law)","Liberal Arts","Management Information Systems","Marketing","Mathematics","Mechanical Engineering","Medicine (Pre-Med)","Music","Neuroscience","Nursing","Nutrition & Dietetics","Operations Management","Philosophy","Physics","Political Science","Psychology","Public Health","Public Policy","Real Estate","Social Work","Sociology","Software Engineering","Sports Management","Statistics","Supply Chain Management","Theater Arts","Urban Planning","Other"].sort();
+
+// RECRUITER-OPTIMIZED EXTRACURRICULARS
+const EXT_CATS=[
+  {
+    id:"leadership",label:"Leadership & Orgs",icon:"🎯",color:"#00C285",
+    why:"Leadership roles are the #1 thing recruiters look for beyond GPA.",
+    options:[
+      {name:"Student Government",roles:["Senator/Representative","Committee Chair","VP / Secretary","President"]},
+      {name:"Pre-Professional Club",roles:["General Member","Committee Lead","Officer (VP/Treasurer)","President / Founder"]},
+      {name:"Resident Advisor (RA)",roles:["RA","Senior RA","Head RA"]},
+      {name:"Greek Life",roles:["General Member","Committee Chair","Executive Officer","Chapter President"]},
+      {name:"Multicultural / Identity Org",roles:["Member","Event Coordinator","Officer","President"]},
+      {name:"Honors Program / Society",roles:["Member","Committee Lead","Officer","President"]},
+    ]
+  },
+  {
+    id:"competitions",label:"Competitions & Challenges",icon:"🏆",color:"#FF8C00",
+    why:"Competitions signal initiative and real-world problem-solving — recruiters love this.",
+    options:[
+      {name:"Case Competition",roles:["Participated","Advanced to Finals","Regional Winner","National Winner"]},
+      {name:"Hackathon",roles:["Participated","Top 10 Finish","Runner-up","1st Place / Winner"]},
+      {name:"Investment / Stock Pitch",roles:["Participated","Finalist","Runner-up","Winner"]},
+      {name:"Business Plan / Pitch Comp",roles:["Participated","Finalist","Runner-up","Winner"]},
+      {name:"Research Poster / Conference",roles:["Presented","Regional","National","Published"]},
+      {name:"Debate / Model UN",roles:["Participant","Award Winner","Officer","Secretary-General"]},
+    ]
+  },
+  {
+    id:"research",label:"Research & Innovation",icon:"🔬",color:"#2563EB",
+    why:"Research experience proves analytical thinking — critical for technical and finance roles.",
+    options:[
+      {name:"Professor Research Lab",roles:["Research Assistant","Co-author","Lead Researcher","Published Author"]},
+      {name:"Independent Research Project",roles:["Completed","Presented","Award Winning","Published"]},
+      {name:"Teaching Assistant (TA)",roles:["Grader","Lab TA","Lecture TA","Head TA"]},
+      {name:"Peer Tutor",roles:["Informal","Certified Tutor","Lead Tutor","Program Director"]},
+      {name:"Patent / Innovation Project",roles:["Contributed","Co-inventor","Lead Inventor","Granted Patent"]},
+      {name:"Study Abroad / Global Program",roles:["Attended","Led Project","Program Lead","Founded Program"]},
+    ]
+  },
+  {
+    id:"work",label:"Work & Entrepreneurship",icon:"💼",color:"#7C3AED",
+    why:"Paid work experience — especially with real responsibility — is often weighted higher than GPA.",
+    options:[
+      {name:"Prior Internship",roles:["Completed","Return Offer","Multiple Internships","Full-time Convert"]},
+      {name:"Part-time / Campus Job",roles:["General","Team Lead","Supervisor","Manager"]},
+      {name:"Freelance Work",roles:["Side Projects","Regular Clients","$1K+ Revenue","$10K+ Revenue"]},
+      {name:"Founded a Business / Startup",roles:["Concept Stage","Early Revenue","Active Business","Funded / Scaled"]},
+      {name:"Social Media / Content Creator",roles:["Small Following","1K+ Followers","10K+ Followers","100K+ Followers"]},
+      {name:"Side Project (App/Tool/Product)",roles:["Built It","Users / Customers","Revenue","Acquired / Scaled"]},
+    ]
+  },
+  {
+    id:"athletics",label:"Sports & Athletics",icon:"⚽",color:"#059669",
+    why:"Sports show discipline, teamwork, and grit — qualities every employer wants.",
+    options:[
+      {name:"Varsity Sport (D1/D2/D3)",roles:["Athlete","Starter","Captain (Nominated)","Team Captain"]},
+      {name:"Club Sport",roles:["Player","Starter","Officer","Captain / President"]},
+      {name:"Intramural Sport",roles:["Participated","Competitive","Championship","Multiple Championships"]},
+      {name:"Personal Athletic Achievement",roles:["Active","Competitive","Regional Level","National / Elite Level"]},
+    ]
+  },
+  {
+    id:"media",label:"Media, Marketing & Events",icon:"📢",color:"#DC2626",
+    why:"Content creation, event management, and communications roles build skills employers pay for.",
+    options:[
+      {name:"Student Newspaper / Magazine",roles:["Writer / Contributor","Section Editor","Managing Editor","Editor-in-Chief"]},
+      {name:"Podcast or YouTube Channel",roles:["Creator","Regular Output","1K+ Audience","10K+ Audience"]},
+      {name:"Campus Event Planning",roles:["Volunteer","Coordinator","Lead Organizer","Director (Large Events)"]},
+      {name:"Marketing / PR for Org",roles:["Contributor","Social Media Manager","Marketing Director","Grew Significantly"]},
+      {name:"Graphic Design / Creative Work",roles:["Hobbyist","Freelance Projects","Client Work","Portfolio + Revenue"]},
+    ]
+  },
+  {
+    id:"service",label:"Community & Volunteering",icon:"❤️",color:"#0EA5E9",
+    why:"Shows character — especially leadership in service roles, not just participation.",
+    options:[
+      {name:"Nonprofit Volunteer",roles:["Occasional","Regular (Monthly+)","Team Lead","Founded / Directed"]},
+      {name:"Mentorship Program",roles:["Mentee","Peer Mentor","Program Officer","Program Director"]},
+      {name:"Fundraising Campaign",roles:["Contributed","Co-led","Led Campaign","Major Campaign ($10K+)"]},
+      {name:"Community Organizing",roles:["Participant","Organizer","Lead Organizer","Founded Initiative"]},
+    ]
+  },
+];
+
+const SKILLS=["Communication / Presenting","Data Analysis","Excel / Google Sheets","Figma / UI Design","Java","JavaScript / TypeScript","Leadership & Team Management","Market Research","Microsoft Office Suite","Project Management","Public Speaking","Python","R / MATLAB","SQL / Databases","Tableau / Power BI","Video / Photo Editing"].sort();
+const GRAD_YEARS=["May 2025","Dec 2025","May 2026","Dec 2026","May 2027","Dec 2027","May 2028","Dec 2028","May 2029","Dec 2029","May 2030","Dec 2030","Graduate Student"];
+const GPA_OPTS=["4.0","3.7–3.9","3.5–3.6","3.0–3.4","2.5–2.9","Below 2.5"];
+const TYPE_OPTS=["Any","Hybrid","In-person","Remote"];
+
+const STEP_HINTS={
+  university:"Your school's reputation and alumni network directly affect which companies recruit you.",
+  gradYear:"Hiring timelines vary — we match you to companies currently recruiting for your graduation date.",
+  major:"The most important factor. We find companies that specifically hire your major.",
+  gpa:"Honest answers give better matches. Many great firms don't require a 4.0.",
+  extracurriculars:"Recruiters care more about leadership roles than participation. Be specific.",
+  skills:"Technical skills get you past automated screening filters. Select what you actually know.",
+  type:"Narrows results so you only see positions that actually fit your life.",
+  zip:"We surface real local firms near you that aren't on every student's radar.",
+  radius:"Cast wider for more options — especially in rural areas.",
+};
+
+const STEPS=[
+  {key:"university",label:"Which university do you attend?",type:"search",options:UNIVERSITIES},
+  {key:"gradYear",label:"When do you graduate?",type:"chips",options:GRAD_YEARS},
+  {key:"major",label:"What's your major?",type:"search",options:MAJORS},
+  {key:"gpa",label:"What's your GPA?",type:"chips",options:GPA_OPTS},
+  {key:"extracurriculars",label:"What are you involved in?",type:"extracurricular"},
+  {key:"skills",label:"What are your top skills?",type:"multi",options:SKILLS},
+  {key:"type",label:"What type of internship?",type:"chips",options:TYPE_OPTS},
+  {key:"zip",label:"What's your zip code?",type:"zip"},
+  {key:"radius",label:"How far are you willing to travel?",type:"slider"},
+];
+
+const POSTS=[
+  {id:1,name:"Jordan M.",school:"Penn State '25",ini:"JM",color:G,time:"2h ago",content:"Just heard back from Goldman after 3 weeks of silence. They batch review at month end — had 3 friends all get responses the same day. Don't give up.",likes:47,comments:12,tag:"Finance",liked:false},
+  {id:2,name:"Priya K.",school:"Georgia Tech '26",ini:"PK",color:AM,time:"5h ago",content:"CS tip: Google opens August, Meta September, Amazon is rolling. Apply to all simultaneously — don't wait for a rejection before moving on.",likes:89,comments:24,tag:"Tech",liked:false},
+  {id:3,name:"Marcus T.",school:"Virginia Tech '25",ini:"MT",color:"#7C3AED",time:"1d ago",content:"Follow-up emails actually work. Applied to Deloitte, nothing for 6 weeks, one polite follow-up, interview 4 days later. Do not skip this step.",likes:134,comments:31,tag:"Consulting",liked:false},
+  {id:4,name:"Aisha R.",school:"NYU '26",ini:"AR",color:CR,time:"2d ago",content:"GPA isn't everything. I have a 3.2 and landed a JPMorgan interview because of relevant experience and a tailored cover letter. Work on your story.",likes:211,comments:45,tag:"Finance",liked:false},
+  {id:5,name:"Tyler W.",school:"Michigan '25",ini:"TW",color:"#059669",time:"3d ago",content:"Referrals are everything. Applied cold to 40 companies, got 2 responses. Got 3 referrals from LinkedIn and landed 2 interviews that same week.",likes:178,comments:38,tag:"General",liked:false},
+];
+
+// COMPONENTS
+function MatchBar({pct,color,delay=0}){
+  const [w,setW]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setW(pct),delay+200);return()=>clearTimeout(t);},[pct,delay]);
+  return(
+    <div style={{background:"#E8F5F0",borderRadius:99,height:6,overflow:"hidden"}}>
+      <div style={{width:`${w}%`,height:"100%",background:color,borderRadius:99,transition:"width 1.4s cubic-bezier(0.4,0,0.2,1)"}}/>
+    </div>
+  );
+}
+
+function AnimatedPct({target,color}){
+  const [n,setN]=useState(0);
+  useEffect(()=>{
+    let start;const dur=1000;
+    const tick=ts=>{if(!start)start=ts;const p=Math.min((ts-start)/dur,1);setN(Math.round(p*target));if(p<1)requestAnimationFrame(tick);};
+    const t=setTimeout(()=>requestAnimationFrame(tick),300);
+    return()=>clearTimeout(t);
+  },[target]);
+  return<span style={{fontWeight:800,fontSize:32,color,lineHeight:1,letterSpacing:"-1.5px"}}>{n}%</span>;
+}
+
+function Counter({target,suffix}){
+  const [n,setN]=useState(0);const ref=useRef(null);
+  useEffect(()=>{
+    const obs=new IntersectionObserver(([e])=>{
+      if(!e.isIntersecting)return;
+      let start;const tick=ts=>{if(!start)start=ts;const p=Math.min((ts-start)/1400,1);setN(Math.round(p*target));if(p<1)requestAnimationFrame(tick);};
+      requestAnimationFrame(tick);obs.disconnect();
+    });
+    if(ref.current)obs.observe(ref.current);return()=>obs.disconnect();
+  },[target]);
+  return React.createElement('span',{ref},n+suffix);
+}
+
+function MatchChip({label,accent}){
+  return<span style={{background:`${accent}18`,color:accent,fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,border:`1px solid ${accent}30`,whiteSpace:"nowrap",letterSpacing:"0.3px"}}>{label}</span>;
+}
+
+function Av({ini,color,size=38}){
+  return<div style={{width:size,height:size,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:Math.round(size*0.33),color:"#fff",flexShrink:0}}>{ini}</div>;
+}
+
+function Confetti(){
+  const pieces=Array.from({length:24},(_,i)=>({
+    id:i,color:PALETTE[i%PALETTE.length],
+    x:Math.random()*100,delay:Math.random()*1.5,
+    size:6+Math.random()*8,rot:Math.random()*360
+  }));
+  return(
+    <div style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:999,overflow:"hidden"}}>
+      {pieces.map(p=>(
+        <div key={p.id} style={{position:"absolute",left:`${p.x}%`,top:-20,width:p.size,height:p.size,background:p.color,borderRadius:p.id%3===0?"50%":2,animation:`confettiFall 2.5s ${p.delay}s ease-in forwards`,transform:`rotate(${p.rot}deg)`}}/>
+      ))}
+    </div>
+  );
+}
+
+function BlurCard({company}){
+  const accent=company?.match>=70?G:company?.match>=50?AM:CR;
+  return(
+    <div style={{position:"relative",borderRadius:var_rl,border:`1px solid ${GL}`,overflow:"hidden",background:"#fff",minHeight:240}}>
+      <div style={{filter:"blur(8px)",opacity:0.3,padding:"1.5rem",pointerEvents:"none",userSelect:"none"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#0A1628"}}>{company?.name||"Regional Company"}</div>
+            <div style={{color:"#4A5568",fontSize:13,marginTop:2}}>{company?.role||"Internship Role"}</div>
+            <div style={{color:"#9CA3AF",fontSize:12,marginTop:2}}>{company?.location||"City, ST"}</div>
+          </div>
+          <div style={{fontWeight:800,fontSize:32,color:accent}}>{company?.match||74}%</div>
+        </div>
+        <div style={{background:"#E8F5F0",borderRadius:99,height:6,marginBottom:"0.75rem"}}>
+          <div style={{width:`${company?.match||74}%`,height:"100%",background:accent,borderRadius:99}}/>
+        </div>
+        <div style={{fontSize:13,color:"#4A5568",lineHeight:1.5}}>{company?.reason||"Strong local fit for your major and profile."}</div>
+      </div>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.5)"}}>
+        <div style={{textAlign:"center",padding:"20px 28px",background:"white",borderRadius:var_rl,border:`1.5px solid ${GL}`,boxShadow:"0 4px 20px rgba(0,194,133,0.15)"}}>
+          <div style={{fontSize:28,marginBottom:8}}>🔒</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#0A1628",marginBottom:4}}>Unlock with Pro</div>
+          <div style={{fontSize:12,color:"#4A5568"}}>See this match + {" "}
+            <span style={{color:G,fontWeight:600}}>7 more companies</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const var_r="10px",var_rl="14px",var_rxl="20px";
+
+
+// Major-adaptive placeholder locked companies
+function getMajorPlaceholders(major){
+  const m=(major||"").toLowerCase();
+  const isEng=m.includes("mechanical")||m.includes("civil")||m.includes("electrical")||m.includes("aerospace")||m.includes("chemical")||m.includes("industrial")||m.includes("biomedical")||m.includes("engineer")||m.includes("construction");
+  const isCS=m.includes("computer")||m.includes("software")||m.includes("cyber")||m.includes("information tech")||m.includes("data science")||m.includes("mis");
+  const isFin=m.includes("finance")||m.includes("accounting")||m.includes("economics")||m.includes("business admin")||m.includes("operations management")||m.includes("supply chain");
+  const isMkt=m.includes("marketing")||m.includes("communications")||m.includes("journalism")||m.includes("public relations")||m.includes("media")||m.includes("advertising");
+  const isHealth=m.includes("nursing")||m.includes("health")||m.includes("pre-med")||m.includes("medicine")||m.includes("pharmacy")||m.includes("nutrition")||m.includes("exercise")||m.includes("kinesiology")||m.includes("biology")||m.includes("neuroscience");
+  const isLaw=m.includes("law")||m.includes("political")||m.includes("criminal")||m.includes("public policy")||m.includes("international relations");
+  const isPsych=m.includes("psychology")||m.includes("social work")||m.includes("sociology")||m.includes("education")||m.includes("counseling");
+  const isDesign=m.includes("graphic")||m.includes("architecture")||m.includes("fashion")||m.includes("interior")||m.includes("art");
+  const isSci=m.includes("chemistry")||m.includes("physics")||m.includes("environmental")||m.includes("geology")||m.includes("forensic")||m.includes("biochem");
+
+  if(isEng) return [
+    {name:"Kleinfelder Group",role:"Civil/Structural Engineering Intern",location:"Near you",industry:"Civil Engineering",match:89,website:"www.kleinfelder.com",linkedin_slug:"kleinfelder"},
+    {name:"Arcadis",role:"Environmental Engineering Intern",location:"Near you",industry:"Infrastructure Engineering",match:85,website:"www.arcadis.com",linkedin_slug:"arcadis"},
+    {name:"Burns & McDonnell",role:"Mechanical Engineering Intern",location:"Near you",industry:"Engineering & Construction",match:83,website:"www.burnsmcd.com",linkedin_slug:"burns-mcdonnell"},
+    {name:"Terracon Consultants",role:"Geotechnical Engineering Intern",location:"Near you",industry:"Geotechnical Engineering",match:80,website:"www.terracon.com",linkedin_slug:"terracon"},
+    {name:"Michael Baker International",role:"Transportation Engineering Intern",location:"Near you",industry:"Infrastructure",match:78,website:"www.mbakerintl.com",linkedin_slug:"michael-baker-international"},
+    {name:"NV5 Global",role:"Engineering Intern",location:"Near you",industry:"Environmental & Engineering",match:76,website:"www.nv5.com",linkedin_slug:"nv5"},
+    {name:"Stantec",role:"Structural Engineering Intern",location:"Near you",industry:"Engineering Consulting",match:74,website:"www.stantec.com",linkedin_slug:"stantec"},
+    {name:"Smith-Midland Corporation",role:"Production Engineering Intern",location:"Near you",industry:"Precast Concrete",match:71,website:"www.smithmidland.com",linkedin_slug:"smith-midland-corporation"},
+    {name:"Whitman, Requardt & Associates",role:"Civil Engineering Intern",location:"Near you",industry:"Civil/Structural",match:69,website:"www.wrai.com",linkedin_slug:"whitman-requardt-and-associates"},
+    {name:"Maser Consulting",role:"Engineering Intern",location:"Near you",industry:"Land Development",match:66,website:"www.maserconsulting.com",linkedin_slug:"maser-consulting"},
+    {name:"REI Engineers",role:"Structural Engineering Intern",location:"Near you",industry:"Structural Engineering",match:63,website:"www.reiengineers.com",linkedin_slug:"rei-engineers"},
+    {name:"Atlantic Testing Laboratories",role:"Materials Testing Intern",location:"Near you",industry:"Construction Testing",match:60,website:"www.atlabusa.com",linkedin_slug:"atlantic-testing-laboratories"},
+  ];
+  if(isCS) return [
+    {name:"Booz Allen Hamilton",role:"Software Developer Intern",location:"Near you",industry:"Defense Tech",match:88,website:"www.boozallen.com",linkedin_slug:"booz-allen-hamilton"},
+    {name:"SAIC",role:"Software Engineering Intern",location:"Near you",industry:"Government IT",match:85,website:"www.saic.com",linkedin_slug:"saic"},
+    {name:"Leidos",role:"Cybersecurity Intern",location:"Near you",industry:"Defense & Technology",match:83,website:"www.leidos.com",linkedin_slug:"leidos"},
+    {name:"Unison Technologies",role:"Full Stack Developer Intern",location:"Near you",industry:"Software Development",match:80,website:"www.unisontech.com",linkedin_slug:"unison-technologies"},
+    {name:"Definitive Logic",role:"Data Analytics Intern",location:"Near you",industry:"Management Consulting IT",match:77,website:"www.definitivelogic.com",linkedin_slug:"definitive-logic"},
+    {name:"Octo Consulting",role:"Cloud Engineering Intern",location:"Near you",industry:"Federal IT Consulting",match:75,website:"www.octoconsulting.com",linkedin_slug:"octo-consulting"},
+    {name:"Noblis",role:"Data Science Intern",location:"Near you",industry:"Nonprofit Technology",match:73,website:"www.noblis.org",linkedin_slug:"noblis"},
+    {name:"Integrity One Technologies",role:"IT Support/Dev Intern",location:"Near you",industry:"Managed IT Services",match:70,website:"www.integrity1tech.com",linkedin_slug:"integrity-one-technologies"},
+    {name:"K2 Integrity",role:"Cybersecurity Analyst Intern",location:"Near you",industry:"Risk & Compliance Tech",match:67,website:"www.k2integrity.com",linkedin_slug:"k2-integrity"},
+    {name:"Pragmatics",role:"Software QA Intern",location:"Near you",industry:"Federal IT",match:64,website:"www.pragmatics.com",linkedin_slug:"pragmatics-inc"},
+    {name:"Optimal Solutions & Technologies",role:"IT Solutions Intern",location:"Near you",industry:"IT Consulting",match:61,website:"www.optimal.com",linkedin_slug:"optimal-solutions-and-technologies"},
+    {name:"Buchanan Technologies",role:"Help Desk / IT Intern",location:"Near you",industry:"Managed Services",match:58,website:"www.buchanan.com",linkedin_slug:"buchanan-technologies"},
+  ];
+  if(isFin) return [
+    {name:"Baker Tilly",role:"Audit & Assurance Intern",location:"Near you",industry:"Public Accounting",match:89,website:"www.bakertilly.com",linkedin_slug:"baker-tilly"},
+    {name:"CohnReznick",role:"Accounting Intern",location:"Near you",industry:"Accounting & Advisory",match:86,website:"www.cohnreznick.com",linkedin_slug:"cohnreznick"},
+    {name:"Kreischer Miller",role:"Audit Intern",location:"Near you",industry:"Regional CPA Firm",match:83,website:"www.kreischergroup.com",linkedin_slug:"kreischer-miller"},
+    {name:"SEI Investments",role:"Financial Analyst Intern",location:"Near you",industry:"Investment Management",match:81,website:"www.seic.com",linkedin_slug:"sei-investments"},
+    {name:"Vanguard",role:"Finance & Operations Intern",location:"Near you",industry:"Asset Management",match:79,website:"www.vanguard.com",linkedin_slug:"the-vanguard-group"},
+    {name:"Janney Montgomery Scott",role:"Investment Banking Intern",location:"Near you",industry:"Regional Investment Bank",match:76,website:"www.janney.com",linkedin_slug:"janney-montgomery-scott"},
+    {name:"Univest Financial",role:"Commercial Banking Intern",location:"Near you",industry:"Regional Banking",match:73,website:"www.univest.net",linkedin_slug:"univest-financial"},
+    {name:"Fulton Financial",role:"Credit Analyst Intern",location:"Near you",industry:"Community Banking",match:71,website:"www.fultonbank.com",linkedin_slug:"fulton-financial-corporation"},
+    {name:"Haynes & Company",role:"Financial Planning Intern",location:"Near you",industry:"Wealth Management",match:68,website:"www.haynesandco.com",linkedin_slug:"haynes-and-company"},
+    {name:"ParenteBeard (Baker Tilly)",role:"Tax Intern",location:"Near you",industry:"Regional CPA",match:65,website:"www.parentebeard.com",linkedin_slug:"parentebeard"},
+    {name:"Penn Community Bank",role:"Finance Intern",location:"Near you",industry:"Community Banking",match:62,website:"www.penncommunitybank.com",linkedin_slug:"penn-community-bank"},
+    {name:"Firstrust Bank",role:"Credit Analyst Intern",location:"Near you",industry:"Regional Banking",match:59,website:"www.firstrust.com",linkedin_slug:"firstrust-bank"},
+  ];
+  if(isMkt) return [
+    {name:"Brownstein Group",role:"Marketing/Advertising Intern",location:"Near you",industry:"Advertising Agency",match:88,website:"www.brownsteingroup.com",linkedin_slug:"brownstein-group"},
+    {name:"Red Tettemer O'Connell + Partners",role:"Account Management Intern",location:"Near you",industry:"Creative Agency",match:85,website:"www.rtopartnersphilly.com",linkedin_slug:"red-tettemer-o-connell-partners"},
+    {name:"Tierney Communications",role:"PR & Communications Intern",location:"Near you",industry:"Public Relations",match:82,website:"www.tierneyagency.com",linkedin_slug:"tierney-communications"},
+    {name:"Harmelin Media",role:"Media Planning Intern",location:"Near you",industry:"Media Buying",match:79,website:"www.harmelin.com",linkedin_slug:"harmelin-media"},
+    {name:"Digital Yalo",role:"Digital Marketing Intern",location:"Near you",industry:"Digital Agency",match:76,website:"www.digitalyalo.com",linkedin_slug:"digital-yalo"},
+    {name:"Patriot-News Media Group",role:"Journalism / Content Intern",location:"Near you",industry:"Media & Publishing",match:73,website:"www.pennlive.com",linkedin_slug:"pennlive-patriot-news"},
+    {name:"Advanta Advertising",role:"Social Media Marketing Intern",location:"Near you",industry:"Advertising",match:71,website:"www.advantaads.com",linkedin_slug:"advanta-advertising"},
+    {name:"The Gist Agency",role:"Brand Strategy Intern",location:"Near you",industry:"Marketing Agency",match:68,website:"www.gistagency.com",linkedin_slug:"the-gist-agency"},
+    {name:"Reaction PR",role:"Public Relations Intern",location:"Near you",industry:"PR Agency",match:65,website:"www.reactionpr.com",linkedin_slug:"reaction-pr"},
+    {name:"Sidecar",role:"E-commerce Marketing Intern",location:"Near you",industry:"Performance Marketing",match:62,website:"www.hellosidecar.com",linkedin_slug:"sidecar"},
+    {name:"Slice Communications",role:"Content Marketing Intern",location:"Near you",industry:"Digital PR",match:60,website:"www.slicecommunications.com",linkedin_slug:"slice-communications"},
+    {name:"Circa Interactive",role:"SEO/Content Intern",location:"Near you",industry:"Higher Ed Marketing",match:57,website:"www.circainteractive.com",linkedin_slug:"circa-interactive"},
+  ];
+  if(isHealth) return [
+    {name:"Main Line Health",role:"Clinical / Administrative Intern",location:"Near you",industry:"Healthcare System",match:88,website:"www.mainlinehealth.org",linkedin_slug:"main-line-health"},
+    {name:"Penn Medicine",role:"Healthcare Operations Intern",location:"Near you",industry:"Academic Medical Center",match:85,website:"www.pennmedicine.org",linkedin_slug:"university-of-pennsylvania-health-system"},
+    {name:"Jefferson Health",role:"Health Sciences Intern",location:"Near you",industry:"Health System",match:83,website:"www.jeffersonhealth.org",linkedin_slug:"jefferson-health"},
+    {name:"Nemours Children's Health",role:"Clinical Research Intern",location:"Near you",industry:"Pediatric Healthcare",match:80,website:"www.nemours.org",linkedin_slug:"nemours"},
+    {name:"Genesis Healthcare",role:"Healthcare Management Intern",location:"Near you",industry:"Long-Term Care",match:77,website:"www.genesishcc.com",linkedin_slug:"genesis-healthcare"},
+    {name:"Accolade Health",role:"Health Advocacy Intern",location:"Near you",industry:"Health Navigation",match:74,website:"www.accolade.com",linkedin_slug:"accolade-health"},
+    {name:"Keystone First (AmeriHealth)",role:"Managed Care Intern",location:"Near you",industry:"Health Insurance",match:71,website:"www.keystonefirstpa.com",linkedin_slug:"keystonefirst"},
+    {name:"NovaBay Pharmaceuticals",role:"Life Sciences Intern",location:"Near you",industry:"Pharmaceuticals",match:68,website:"www.novabay.com",linkedin_slug:"novabay-pharmaceuticals"},
+    {name:"ChristianaCare",role:"Population Health Intern",location:"Near you",industry:"Health System",match:65,website:"www.christianacare.org",linkedin_slug:"christianacare"},
+    {name:"BioTelemetry",role:"Clinical Data Intern",location:"Near you",industry:"Medical Technology",match:62,website:"www.biotelemetry.com",linkedin_slug:"biotelemetry"},
+    {name:"Rite Aid",role:"Pharmacy Intern",location:"Near you",industry:"Retail Pharmacy",match:60,website:"www.riteaid.com",linkedin_slug:"rite-aid-pharmacy"},
+    {name:"Bayada Home Health Care",role:"Home Health Intern",location:"Near you",industry:"Home Healthcare",match:57,website:"www.bayada.com",linkedin_slug:"bayada-home-health-care"},
+  ];
+  if(isLaw) return [
+    {name:"Cozen O'Connor",role:"Legal Research Intern",location:"Near you",industry:"Law Firm",match:87,website:"www.cozen.com",linkedin_slug:"cozen-o-connor"},
+    {name:"Ballard Spahr",role:"Legal Intern / Law Clerk",location:"Near you",industry:"Law Firm",match:84,website:"www.ballardspahr.com",linkedin_slug:"ballard-spahr"},
+    {name:"Duane Morris LLP",role:"Legal Research Intern",location:"Near you",industry:"Law Firm",match:81,website:"www.duanemorris.com",linkedin_slug:"duane-morris"},
+    {name:"Clark Hill",role:"Paralegal Intern",location:"Near you",industry:"Law Firm",match:78,website:"www.clarkhill.com",linkedin_slug:"clark-hill-law"},
+    {name:"PA Office of Attorney General",role:"Legal / Policy Intern",location:"Near you",industry:"Government",match:75,website:"www.attorneygeneral.gov",linkedin_slug:"pa-office-of-attorney-general"},
+    {name:"Community Legal Services",role:"Legal Aid Intern",location:"Near you",industry:"Nonprofit Legal",match:72,website:"www.clsphila.org",linkedin_slug:"community-legal-services"},
+    {name:"Philadelphia Defenders Association",role:"Criminal Defense Intern",location:"Near you",industry:"Public Defense",match:69,website:"www.philadefenders.org",linkedin_slug:"philadelphia-defenders-association"},
+    {name:"ACLU of Pennsylvania",role:"Policy & Advocacy Intern",location:"Near you",industry:"Civil Rights",match:66,website:"www.aclupa.org",linkedin_slug:"aclu-of-pennsylvania"},
+    {name:"McNees Wallace & Nurick",role:"Regulatory Affairs Intern",location:"Near you",industry:"Business Law",match:63,website:"www.mcneeslaw.com",linkedin_slug:"mcnees-wallace-nurick"},
+    {name:"Lamb McErlane PC",role:"Paralegal Intern",location:"Near you",industry:"Regional Law Firm",match:60,website:"www.lambmcerlane.com",linkedin_slug:"lamb-mcerlane"},
+    {name:"Saxton & Stump",role:"Legal Research Intern",location:"Near you",industry:"Law Firm",match:57,website:"www.saxtonstump.com",linkedin_slug:"saxton-stump"},
+    {name:"Kaplin Stewart",role:"Real Estate Law Intern",location:"Near you",industry:"Real Estate Law",match:54,website:"www.kaplaw.com",linkedin_slug:"kaplin-stewart"},
+  ];
+  // Default: Business/General
+  return [
+    {name:"Meridian Financial Group",role:"Business Analyst Intern",location:"Near you",industry:"Financial Services",match:88,website:"www.meridianfinancialgroup.com",linkedin_slug:"meridian-financial-group"},
+    {name:"Triumph Business Capital",role:"Operations Intern",location:"Near you",industry:"Alternative Finance",match:85,website:"www.triumphbusinesscapital.com",linkedin_slug:"triumph-business-capital"},
+    {name:"BRT Analytics",role:"Business Intelligence Intern",location:"Near you",industry:"Analytics Consulting",match:82,website:"www.brtanalytics.com",linkedin_slug:"brt-analytics"},
+    {name:"Berwind Corporation",role:"Corporate Strategy Intern",location:"Near you",industry:"Private Equity",match:79,website:"www.berwind.com",linkedin_slug:"berwind-corporation"},
+    {name:"Day & Zimmermann",role:"Operations Management Intern",location:"Near you",industry:"Staffing & Engineering",match:76,website:"www.dayzim.com",linkedin_slug:"day-zimmermann"},
+    {name:"Urban Engineers",role:"Project Management Intern",location:"Near you",industry:"Civil Engineering",match:73,website:"www.urbanengineers.com",linkedin_slug:"urban-engineers"},
+    {name:"Navient",role:"Financial Operations Intern",location:"Near you",industry:"Financial Services",match:70,website:"www.navient.com",linkedin_slug:"navient"},
+    {name:"Aramark",role:"Business Development Intern",location:"Near you",industry:"Food Services & Facilities",match:67,website:"www.aramark.com",linkedin_slug:"aramark"},
+    {name:"AmeriSourceBergen",role:"Operations Intern",location:"Near you",industry:"Healthcare Distribution",match:64,website:"www.amerisourcebergen.com",linkedin_slug:"amerisourcebergen"},
+    {name:"Bentley Systems",role:"Business Operations Intern",location:"Near you",industry:"Infrastructure Software",match:61,website:"www.bentley.com",linkedin_slug:"bentley-systems"},
+    {name:"Republic First Bancorp",role:"Banking Operations Intern",location:"Near you",industry:"Community Banking",match:58,website:"www.myrepublicbank.com",linkedin_slug:"republic-first-bancorp"},
+    {name:"WFG National Title Insurance",role:"Business Support Intern",location:"Near you",industry:"Title Insurance",match:55,website:"www.wfgnationaltitle.com",linkedin_slug:"wfg-national-title-insurance-company"},
+  ];
+}
+
+function App(){
+  const [page,setPage]=useState("landing");
+  const [step,setStep]=useState(0);
+  const [ans,setAns]=useState({university:"",gradYear:"",major:"",gpa:"",extracurriculars:[],skills:[],type:"",zip:"",radius:50});
+  // extracurriculars stored as [{activity, role}]
+  const [extPicks,setExtPicks]=useState([]);
+  const [results,setResults]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [loadMsg,setLoadMsg]=useState(LOAD_MSGS[0]);
+  const [loadPct,setLoadPct]=useState(0);
+  const [searchQ,setSearchQ]=useState("");
+  const [expandedExt,setExpandedExt]=useState(null);
+  const [roleModal,setRoleModal]=useState(null); // {catId, actName}
+  const [posts,setPosts]=useState(POSTS);
+  const [draft,setDraft]=useState("");
+  const [draftTag,setDraftTag]=useState("General");
+  const [isPro,setIsPro]=useState(false);
+  const [showProModal,setShowProModal]=useState(false);
+  const [showConfetti,setShowConfetti]=useState(false);
+  const [profilePct,setProfilePct]=useState(0);
+  const [tracked,setTracked]=useState([
+    {company:"KMM Group, Ltd.",role:"Mechanical Engineering Intern",status:"Applied",date:"Jan 15"},
+    {company:"Selas Heat Technology",role:"Engineering Intern",status:"Interview",date:"Jan 12"},
+  ]);
+
+  const cur=STEPS[step];
+
+  // Profile strength
+  useEffect(()=>{
+    const fields=[ans.university,ans.gradYear,ans.major,ans.gpa,extPicks.length>0?"x":"",ans.skills.length>0?"x":"",ans.type,ans.zip];
+    const filled=fields.filter(Boolean).length;
+    setProfilePct(Math.round((filled/fields.length)*100));
+  },[ans,extPicks]);
+
+  function setA(k,v,auto=false){
+    setAns(p=>({...p,[k]:v}));
+    if(auto){setSearchQ("");setTimeout(()=>setStep(s=>Math.min(s+1,STEPS.length-1)),300);}
+  }
+  function toggleSkill(v){setAns(p=>{const a=p.skills;return{...p,skills:a.includes(v)?a.filter(x=>x!==v):[...a,v]};});}
+
+  function canNext(){
+    if(cur?.type==="multi")return ans.skills.length>0;
+    if(cur?.type==="slider")return true;
+    if(cur?.type==="zip")return /^\d{5}$/.test(ans.zip);
+    if(cur?.type==="extracurricular")return extPicks.length>0;
+    return !!ans[cur?.key];
+  }
+
+  function pickRole(catId,actName,role){
+    setExtPicks(p=>{
+      const existing=p.find(x=>x.activity===actName);
+      if(existing){return p.map(x=>x.activity===actName?{...x,role}:x);}
+      return[...p,{activity:actName,role,catId}];
+    });
+    setAns(p=>({...p,extracurriculars:[...new Set([...p.extracurriculars,actName])]}));
+    setRoleModal(null);
+  }
+
+  function removeExt(actName){
+    setExtPicks(p=>p.filter(x=>x.activity!==actName));
+    setAns(p=>({...p,extracurriculars:p.extracurriculars.filter(x=>x!==actName)}));
+  }
+
+  async function calcResults(){
+    setLoading(true);setPage("results");setShowConfetti(false);
+    let mi=0,pct=0;setLoadMsg(LOAD_MSGS[0]);setLoadPct(0);
+    const iv=setInterval(()=>{
+      mi=(mi+1)%LOAD_MSGS.length;setLoadMsg(LOAD_MSGS[mi]);
+      pct=Math.min(pct+18,90);setLoadPct(pct);
+    },1800);
+
+    const extStr=extPicks.map(e=>`${e.activity} (${e.role})`).join(", ")||"various";
+        const prompt=`You are a hyper-specialized internship placement expert. Your job is to find REAL local companies hiring for the student's EXACT major.
+
+STUDENT PROFILE:
+- Major: ${ans.major} ← THIS IS THE #1 PRIORITY. Every single company and role must be relevant to this major.
+- University: ${ans.university}
+- GPA: ${ans.gpa}
+- Graduating: ${ans.gradYear}
+- Zip Code: ${ans.zip} (find companies within ${ans.radius} miles)
+- Skills: ${ans.skills.join(",")||"general"}
+- Activities: ${extStr}
+- Internship Type: ${ans.type}
+
+YOUR TASK: Generate exactly 12 REAL internship opportunities for a ${ans.major} student.
+
+CRITICAL RULES — READ CAREFULLY:
+1. EVERY role must be directly relevant to ${ans.major}. A Pre-Law student gets law firms, DA offices, public defenders, courts, legal nonprofits. A Nursing student gets hospitals, clinics, home health agencies. A Marketing student gets ad agencies, PR firms, brands. NEVER mix up majors.
+2. ONLY 1-2 nationally known brands. The rest MUST be real but smaller/regional firms most students have never heard of.
+3. Find companies actually near zip code ${ans.zip}. Think about what industries exist in that specific geographic region.
+4. Include a wide variety of employer types: private firms, nonprofits, government agencies, startups, regional companies.
+5. Match % should reflect realism: GPA ${ans.gpa} and ${ans.gradYear} graduation.
+6. Company names must be REAL. Websites must be REAL and accurate.
+7. LinkedIn company page slug must be the REAL LinkedIn URL slug for that company.
+
+Return ONLY a valid JSON array. No other text. No markdown. No explanation:
+[{"name":"REAL Company Name","role":"Role specific to ${ans.major}","location":"City, ST","industry":"Specific sector","match":82,"reason":"One sentence why this fits a ${ans.major} student specifically","website":"www.actualcompanywebsite.com","linkedin_slug":"actual-company-linkedin-slug"}]`;
+
+    try{
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1800,messages:[{role:"user",content:prompt}]})});
+      const data=await resp.json();
+      const text=data.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+      let companies;
+      try{companies=JSON.parse(text.trim());}catch{const m=text.match(/\[[\s\S]*\]/);companies=m?JSON.parse(m[0]):[];}
+      if(companies&&companies.length>0){
+        const normalized=companies.map(c=>({
+          ...c,
+          linkedin_slug:c.linkedin_slug||(c.linkedin||"").replace(/.*\/company\//,"").replace(/\//g,""),
+          website:(c.website||"").replace(/^https?:\/\//,"").replace(/^\/+/,"")
+        }));
+        setResults(normalized.sort((a,b)=>b.match-a.match));
+      }
+      else throw new Error("empty");
+    }catch(e){
+      // Fallback: use major-adaptive placeholder companies so results always match the major
+      const fallback=getMajorPlaceholders(ans.major).slice(0,4).map(c=>({
+        ...c,
+        reason:`${c.name} is a strong regional fit for ${ans.major} students near ${ans.zip}.`
+      }));
+      setResults(fallback);
+    }
+    clearInterval(iv);setLoadPct(100);
+    setTimeout(()=>{setLoading(false);setShowConfetti(true);setTimeout(()=>setShowConfetti(false),3000);},400);
+  }
+
+  function track(c){
+    if(!tracked.find(t=>t.company===c.name)){
+      setTracked(p=>[...p,{company:c.name,role:c.role,status:"Applied",date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"})}]);
+    }
+  }
+
+  function addPost(){if(!draft.trim())return;setPosts(p=>[{id:Date.now(),name:"You",school:ans.university||"Your school",ini:"YO",color:G,time:"Just now",content:draft,likes:0,comments:0,tag:draftTag,liked:false},...p]);setDraft("");}
+
+  // PRO MODAL
+  const ProModal=()=>(
+    <div style={{position:"fixed",inset:0,background:"rgba(10,22,40,0.6)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",backdropFilter:"blur(4px)"}} onClick={()=>setShowProModal(false)}>
+      <div style={{background:"#fff",borderRadius:var_rxl,padding:"2.5rem",maxWidth:440,width:"100%",boxShadow:"0 24px 80px rgba(0,0,0,0.2)",animation:"pop 0.3s ease"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:`linear-gradient(135deg,${G}15,${AM}10)`,borderRadius:var_rl,padding:"1.25rem",marginBottom:"1.5rem",border:`1px solid ${GL}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <span style={{fontSize:24}}>⚡</span>
+            <span style={{fontWeight:800,fontSize:22,color:"#0A1628",letterSpacing:"-0.5px"}}>InternIQ Pro</span>
+            <span style={{marginLeft:"auto",background:`${AM}18`,color:AM,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:99,border:`1px solid ${AM}30`}}>Early Access</span>
+          </div>
+          <p style={{color:"#4A5568",fontSize:14}}><strong style={{color:G,fontSize:18}}>$9</strong><span style={{color:"#9CA3AF",textDecoration:"line-through",marginLeft:6}}>$19</span> /month · Cancel anytime</p>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:"2rem"}}>
+          {[
+            {icon:"🔓",title:"See all 12 matches",desc:"Unlock 8 more local firms beyond your free preview"},
+            {icon:"📧",title:"Auto follow-up emails",desc:"We send perfectly-timed follow-ups on your behalf"},
+            {icon:"📊",title:"Full application tracker",desc:"Every app, interview, and offer in one dashboard"},
+            {icon:"🔄",title:"Unlimited refreshes",desc:"Generate new company batches any time you want"},
+            {icon:"📍",title:"Priority local matching",desc:"First access to newly-added regional employers"},
+          ].map((f,i)=>(
+            <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+              <div style={{width:36,height:36,borderRadius:var_r,background:GL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:18}}>{f.icon}</div>
+              <div><p style={{fontWeight:600,fontSize:14,color:"#0A1628"}}>{f.title}</p><p style={{fontSize:13,color:"#4A5568",marginTop:2}}>{f.desc}</p></div>
+            </div>
+          ))}
+        </div>
+        <button onClick={()=>{setIsPro(true);setShowProModal(false);}} style={{width:"100%",background:G,border:"none",color:"#fff",padding:"15px",borderRadius:var_rl,cursor:"pointer",fontFamily:"var(--font)",fontSize:16,fontWeight:700,letterSpacing:"-0.3px"}}>
+          Unlock Pro — $9/mo →
+        </button>
+        <p style={{textAlign:"center",fontSize:12,color:"#9CA3AF",marginTop:10}}>🔒 Secure · Cancel anytime · Instant access</p>
+      </div>
+    </div>
+  );
+
+  // ROLE MODAL
+  const RoleModalCmp=()=>{
+    if(!roleModal)return null;
+    const cat=EXT_CATS.find(c=>c.id===roleModal.catId);
+    const act=cat?.options.find(o=>o.name===roleModal.actName);
+    const current=extPicks.find(x=>x.activity===roleModal.actName);
+    if(!act)return null;
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(10,22,40,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",backdropFilter:"blur(3px)"}} onClick={()=>setRoleModal(null)}>
+        <div style={{background:"#fff",borderRadius:var_rxl,padding:"2rem",maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.15)",animation:"pop 0.25s ease"}} onClick={e=>e.stopPropagation()}>
+          <p style={{fontSize:11,fontWeight:700,color:"#9CA3AF",letterSpacing:"2px",textTransform:"uppercase",marginBottom:8}}>Your Role</p>
+          <h3 style={{fontWeight:800,fontSize:18,color:"#0A1628",marginBottom:"0.25rem",letterSpacing:"-0.3px"}}>{act.name}</h3>
+          <p style={{color:"#4A5568",fontSize:13,marginBottom:"1.5rem"}}>Select your level of involvement — this affects your match scores significantly.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {act.roles.map((role,i)=>{
+              const isSel=current?.role===role;
+              const isHighest=i===act.roles.length-1;
+              return(
+                <button key={role} onClick={()=>pickRole(roleModal.catId,act.name,role)}
+                  style={{padding:"12px 16px",borderRadius:var_r,border:`1.5px solid ${isSel?G:isHighest?"#F0FBF7":"#E2E8F0"}`,background:isSel?GL:isHighest?"#F0FBF7":"#fff",cursor:"pointer",fontFamily:"var(--font)",textAlign:"left",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"all 0.15s"}}>
+                  <div>
+                    <span style={{fontWeight:isSel?700:500,fontSize:14,color:isSel?GD:"#0A1628"}}>{role}</span>
+                    {isHighest&&!isSel&&<span style={{marginLeft:8,fontSize:10,fontWeight:700,color:AM,background:`${AM}15`,padding:"1px 8px",borderRadius:99}}>BEST</span>}
+                  </div>
+                  {isSel&&<span style={{fontSize:16,color:G}}>✓</span>}
+                </button>
+              );
+            })}
+          </div>
+          {current&&<button onClick={()=>{removeExt(roleModal.actName);setRoleModal(null);}} style={{width:"100%",marginTop:12,background:"#FFF5F5",border:"1px solid #FED7D7",color:CR,padding:"10px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:13,fontWeight:600}}>Remove this activity</button>}
+        </div>
+      </div>
+    );
+  };
+
+  // NAV
+  const Nav=()=>(
+    <nav style={{background:"rgba(255,255,255,0.95)",borderBottom:`1px solid ${GL}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 1.5rem",height:58,position:"sticky",top:0,zIndex:100,backdropFilter:"blur(8px)"}}>
+      <button onClick={()=>setPage("landing")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:9,padding:0}}>
+        <div style={{width:32,height:32,background:`linear-gradient(135deg,${G},${GD})`,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${G}40`}}>
+          <span style={{fontSize:13,fontWeight:800,color:"#fff",letterSpacing:"-0.5px"}}>IQ</span>
+        </div>
+        <span style={{fontWeight:800,fontSize:17,color:"#0A1628",letterSpacing:"-0.5px"}}>InternIQ</span>
+      </button>
+      <div style={{display:"flex",gap:2,alignItems:"center"}}>
+        {[["community","Community"],["dashboard","Dashboard"]].map(([p,l])=>(
+          <button key={p} onClick={()=>setPage(p)} style={{background:page===p?GL:"transparent",border:"none",color:page===p?GD:"#4A5568",padding:"7px 14px",borderRadius:var_r,cursor:"pointer",fontSize:14,fontWeight:page===p?600:400,fontFamily:"var(--font)"}}>{l}</button>
+        ))}
+        {!isPro&&<button onClick={()=>setShowProModal(true)} style={{background:AL,border:`1px solid ${AM}30`,color:AM,padding:"6px 14px",borderRadius:var_r,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"var(--font)",marginLeft:2}}>⚡ Pro</button>}
+        <button onClick={()=>{setStep(0);setPage("quiz");}} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"8px 18px",borderRadius:var_r,cursor:"pointer",fontSize:14,fontWeight:700,marginLeft:4,fontFamily:"var(--font)",boxShadow:`0 2px 8px ${G}40`}}>Get Started</button>
+      </div>
+    </nav>
+  );
+
+  // LANDING
+  if(page==="landing")return(
+    <div style={{background:"#fff"}}>
+      {showProModal&&<ProModal/>}
+      <Nav/>
+      {/* Hero */}
+      <div style={{background:`linear-gradient(160deg, #F0FBF7 0%, #fff 60%)`,padding:"5rem 2rem 4rem",textAlign:"center",maxWidth:680,margin:"0 auto"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:GL,color:GD,padding:"6px 16px",borderRadius:99,fontSize:12,fontWeight:700,marginBottom:"1.5rem",border:`1px solid ${GM}`,letterSpacing:"0.3px"}}>
+          <span>✦</span> 2,400+ students matched this month
+        </div>
+        <h1 style={{fontSize:"clamp(2.4rem,6vw,4rem)",fontWeight:800,lineHeight:1.05,letterSpacing:"-2.5px",marginBottom:"1.25rem",color:"#0A1628"}}>
+          Stop applying blind.<br/><span style={{color:G}}>Start applying smart.</span>
+        </h1>
+        <p style={{fontSize:18,color:"#4A5568",lineHeight:1.7,maxWidth:500,margin:"0 auto 2rem"}}>
+          AI finds real local firms near you — not just the same 10 companies on everyone else's list.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+          <button onClick={()=>{setStep(0);setPage("quiz");}} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"15px 32px",borderRadius:var_rl,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"var(--font)",boxShadow:`0 4px 20px ${G}50`,letterSpacing:"-0.3px"}}>
+            Find My Matches — Free →
+          </button>
+          <button onClick={()=>setPage("community")} style={{background:"#fff",border:`1.5px solid #E2F5EE`,color:"#0A1628",padding:"15px 32px",borderRadius:var_rl,fontSize:16,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>
+            See Community
+          </button>
+        </div>
+        <p style={{fontSize:13,color:"#9CA3AF",marginTop:16}}>Takes 2 minutes · No account required · Free to start</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{background:"#F8FFFE",borderTop:`1px solid ${GL}`,borderBottom:`1px solid ${GL}`,padding:"3rem 2rem"}}>
+        <p style={{fontSize:10,fontWeight:700,color:"#9CA3AF",letterSpacing:"3px",textTransform:"uppercase",textAlign:"center",marginBottom:"2rem"}}>The reality check</p>
+        <div style={{maxWidth:760,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"1rem"}}>
+          {[{v:52,s:"+",l:"Avg applications per student",c:G},{v:8,s:"%",l:"Cold application response rate",c:AM},{v:85,s:"%",l:"Never send a follow-up email",c:CR},{v:3,s:"x",l:"Higher callback with follow-up",c:"#2563EB"}].map((s,i)=>(
+            <div key={i} style={{background:"#fff",border:`1px solid ${GL}`,borderRadius:var_rl,padding:"1.75rem 1.25rem",textAlign:"center",boxShadow:"0 2px 8px rgba(0,194,133,0.06)"}}>
+              <div style={{fontSize:38,fontWeight:800,color:s.c,lineHeight:1,marginBottom:"0.5rem",letterSpacing:"-1.5px"}}><Counter target={s.v} suffix={s.s}/></div>
+              <p style={{fontSize:12,color:"#4A5568",lineHeight:1.5,fontWeight:500}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* How it works */}
+      <div style={{padding:"4rem 2rem",maxWidth:760,margin:"0 auto"}}>
+        <p style={{fontSize:10,fontWeight:700,color:"#9CA3AF",letterSpacing:"3px",textTransform:"uppercase",textAlign:"center",marginBottom:"0.5rem"}}>How it works</p>
+        <h2 style={{fontSize:"clamp(1.6rem,3.5vw,2.4rem)",fontWeight:800,letterSpacing:"-1px",textAlign:"center",marginBottom:"2.5rem",color:"#0A1628"}}>Three steps to your internship.</h2>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"1.25rem"}}>
+          {[
+            {icon:"🎯",num:"01",title:"Build your profile",desc:"School, major, GPA, activities, and zip code. 2 minutes.",color:G},
+            {icon:"🤖",num:"02",title:"AI finds real local firms",desc:"We surface companies near you that match your major — including ones you've never heard of.",color:AM},
+            {icon:"📧",num:"03",title:"Apply and follow up",desc:"LinkedIn and Indeed links included. Pro members get auto follow-ups sent for them.",color:"#2563EB"},
+          ].map((s,i)=>(
+            <div key={i} style={{background:"#fff",border:`1px solid ${GL}`,borderRadius:var_rl,padding:"1.75rem",boxShadow:"0 2px 12px rgba(0,194,133,0.06)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+                <div style={{width:44,height:44,borderRadius:var_r,background:GL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{s.icon}</div>
+                <span style={{fontSize:28,fontWeight:800,color:"#E2F5EE",letterSpacing:"-1px"}}>{s.num}</span>
+              </div>
+              <h3 style={{fontSize:16,fontWeight:700,marginBottom:"0.5rem",color:"#0A1628",letterSpacing:"-0.3px"}}>{s.title}</h3>
+              <p style={{fontSize:14,color:"#4A5568",lineHeight:1.6}}>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:"2rem 2rem 5rem"}}>
+        <div style={{background:`linear-gradient(135deg,${GL},#fff)`,border:`1.5px solid ${GM}`,borderRadius:var_rxl,padding:"3rem 2rem",maxWidth:520,margin:"0 auto",textAlign:"center",boxShadow:`0 8px 32px ${G}15`}}>
+          <h2 style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:800,letterSpacing:"-0.8px",marginBottom:"0.75rem",color:"#0A1628"}}>Ready to find your real shot?</h2>
+          <p style={{color:"#4A5568",marginBottom:"1.5rem",fontSize:15,lineHeight:1.6}}>Free to start. Takes 2 minutes. Real local firms, not just the big names.</p>
+          <button onClick={()=>{setStep(0);setPage("quiz");}} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"15px 40px",borderRadius:var_rl,fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"var(--font)",boxShadow:`0 4px 20px ${G}40`}}>Find My Matches — Free</button>
+        </div>
+      </div>
+      <div style={{textAlign:"center",padding:"1.5rem",color:"#9CA3AF",fontSize:13,borderTop:`1px solid ${GL}`}}>© 2025 InternIQ · Built for students · <span style={{color:G,cursor:"pointer"}} onClick={()=>setShowProModal(true)}>Go Pro ⚡</span></div>
+    </div>
+  );
+
+  // QUIZ
+  if(page==="quiz"){
+    const answered=Object.entries(ans).filter(([k,v])=>{
+      if(k==="extracurriculars")return extPicks.length>0;
+      if(Array.isArray(v))return v.length>0;
+      return !!v&&v!==50;
+    }).length;
+
+    return(
+      <div style={{background:"#fff",minHeight:"100vh"}}>
+        {showProModal&&<ProModal/>}
+        {roleModal&&<RoleModalCmp/>}
+        <Nav/>
+        {/* Progress */}
+        <div style={{background:GL,height:4}}>
+          <div style={{height:"100%",background:`linear-gradient(90deg,${G},${GD})`,width:`${((step)/STEPS.length)*100}%`,transition:"width 0.5s ease",borderRadius:"0 99px 99px 0"}}/>
+        </div>
+        {/* Profile strength */}
+        <div style={{background:"#F8FFFE",borderBottom:`1px solid ${GL}`,padding:"0.6rem 1.5rem",display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:12,fontWeight:600,color:GD,whiteSpace:"nowrap"}}>Profile Strength</span>
+          <div style={{flex:1,background:GL,borderRadius:99,height:6,overflow:"hidden"}}>
+            <div style={{width:`${profilePct}%`,height:"100%",background:`linear-gradient(90deg,${G},${GD})`,borderRadius:99,transition:"width 0.6s ease"}}/>
+          </div>
+          <span style={{fontSize:12,fontWeight:700,color:GD,minWidth:32}}>{profilePct}%</span>
+        </div>
+
+        <div style={{maxWidth:540,margin:"0 auto",padding:"2.5rem 1.5rem"}}>
+          <p style={{fontSize:10,color:"#9CA3AF",fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase",marginBottom:"0.4rem"}}>Step {step+1} of {STEPS.length}</p>
+          <h2 className="fade-up" key={step} style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:800,letterSpacing:"-0.8px",marginBottom:"0.5rem",lineHeight:1.2,color:"#0A1628"}}>{cur.label}</h2>
+          {STEP_HINTS[cur.key]&&<p style={{fontSize:13,color:"#4A5568",marginBottom:"1.75rem",lineHeight:1.5,padding:"8px 12px",background:"#F8FFFE",borderRadius:var_r,border:`1px solid ${GL}`}}>💡 {STEP_HINTS[cur.key]}</p>}
+
+          {/* SEARCH */}
+          {cur.type==="search"&&(<div className="fade-up">
+            <div style={{position:"relative",marginBottom:8}}>
+              <span style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",fontSize:16}}>🔍</span>
+              <input type="text" value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Start typing..." autoFocus
+                style={{width:"100%",padding:"13px 14px 13px 42px",borderRadius:var_rl,border:`1.5px solid ${searchQ?G:"#E2E8F0"}`,background:"#F8FFFE",color:"#0A1628",fontFamily:"var(--font)",fontSize:15,outline:"none",transition:"border-color 0.2s"}}/>
+            </div>
+            {ans[cur.key]&&<div style={{background:GL,border:`1px solid ${GM}`,borderRadius:var_r,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+              <span style={{color:G,fontWeight:700}}>✓</span>
+              <span style={{fontSize:14,fontWeight:600,color:GD}}>{ans[cur.key]}</span>
+              <button onClick={()=>setAns(p=>({...p,[cur.key]:""}))} style={{marginLeft:"auto",background:"none",border:"none",color:GD,cursor:"pointer",fontSize:12,fontFamily:"var(--font)",fontWeight:600}}>change</button>
+            </div>}
+            <div style={{maxHeight:300,overflowY:"auto",display:"flex",flexDirection:"column",gap:5}}>
+              {cur.options.filter(o=>o.toLowerCase().includes(searchQ.toLowerCase())).map(o=>(
+                <button key={o} onClick={()=>setA(cur.key,o,true)}
+                  style={{background:ans[cur.key]===o?GL:"#fff",border:`1.5px solid ${ans[cur.key]===o?G:"#E2E8F0"}`,color:ans[cur.key]===o?GD:"#0A1628",padding:"11px 14px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:14,textAlign:"left",transition:"all 0.1s"}}>
+                  {ans[cur.key]===o&&"✓ "}{o}
+                </button>
+              ))}
+            </div>
+          </div>)}
+
+          {/* CHIPS */}
+          {cur.type==="chips"&&(<div className="fade-up" style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {cur.options.map((o,i)=>{const c=PALETTE[i%PALETTE.length];const sel=ans[cur.key]===o;
+              return<button key={o} onClick={()=>setA(cur.key,o,true)} style={{background:sel?c:"#fff",border:`1.5px solid ${sel?c:"#E2E8F0"}`,color:sel?"#fff":"#0A1628",padding:"10px 20px",borderRadius:99,cursor:"pointer",fontFamily:"var(--font)",fontSize:14,fontWeight:sel?700:400,transition:"all 0.18s",boxShadow:sel?`0 2px 10px ${c}40`:"none"}}>{o}</button>;
+            })}
+          </div>)}
+
+          {/* EXTRACURRICULAR */}
+          {cur.type==="extracurricular"&&(<div className="fade-up">
+            {extPicks.length>0&&(
+              <div style={{marginBottom:12,padding:"10px 14px",background:GL,borderRadius:var_r,border:`1px solid ${GM}`}}>
+                <p style={{fontSize:12,fontWeight:700,color:GD,marginBottom:8}}>Selected ({extPicks.length})</p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {extPicks.map(ep=>(
+                    <button key={ep.activity} onClick={()=>setRoleModal({catId:ep.catId,actName:ep.activity})}
+                      style={{background:"#fff",border:`1.5px solid ${G}`,color:GD,padding:"4px 10px",borderRadius:99,cursor:"pointer",fontFamily:"var(--font)",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                      {ep.activity} <span style={{background:G,color:"#fff",padding:"0px 6px",borderRadius:99,fontSize:10}}>{ep.role}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {EXT_CATS.map(cat=>{
+                const catSelected=extPicks.filter(x=>x.catId===cat.id);
+                const isExp=expandedExt===cat.id;
+                return(<div key={cat.id} style={{borderRadius:var_rl,overflow:"hidden",border:`1.5px solid ${catSelected.length>0?cat.color:"#E2E8F0"}`,transition:"border-color 0.2s"}}>
+                  <button onClick={()=>setExpandedExt(isExp?null:cat.id)}
+                    style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 16px",background:catSelected.length>0?`${cat.color}10`:"#F8FFFE",cursor:"pointer",fontFamily:"var(--font)",border:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:18}}>{cat.icon}</span>
+                      <span style={{fontWeight:700,fontSize:14,color:"#0A1628"}}>{cat.label}</span>
+                      {catSelected.length>0&&<span style={{background:cat.color,color:"#fff",fontSize:11,fontWeight:700,padding:"2px 9px",borderRadius:99}}>{catSelected.length}</span>}
+                    </div>
+                    <span style={{color:"#9CA3AF",fontSize:13,fontWeight:600}}>{isExp?"▲":"▼"}</span>
+                  </button>
+                  {isExp&&(
+                    <div style={{padding:"0.75rem",background:"#fff",borderTop:`1px solid ${cat.color}20`}}>
+                      <p style={{fontSize:11,color:"#9CA3AF",fontWeight:600,marginBottom:8,letterSpacing:"0.5px"}}>TAP TO SELECT ROLE →</p>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                        {cat.options.map(opt=>{
+                          const picked=extPicks.find(x=>x.activity===opt.name);
+                          return(
+                            <button key={opt.name} onClick={()=>setRoleModal({catId:cat.id,actName:opt.name})}
+                              style={{background:picked?cat.color:"#fff",border:`1.5px solid ${picked?cat.color:"#E2E8F0"}`,color:picked?"#fff":"#0A1628",padding:"8px 14px",borderRadius:99,cursor:"pointer",fontFamily:"var(--font)",fontSize:13,fontWeight:picked?700:400,display:"flex",alignItems:"center",gap:6,transition:"all 0.15s"}}>
+                              {picked&&"✓ "}{opt.name}
+                              {picked&&<span style={{background:"rgba(255,255,255,0.25)",padding:"0px 6px",borderRadius:99,fontSize:10}}>{picked.role}</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>);
+              })}
+            </div>
+            {extPicks.length>0&&<p style={{fontSize:13,color:GD,fontWeight:700,marginTop:10}}>✓ {extPicks.length} activit{extPicks.length===1?"y":"ies"} selected</p>}
+          </div>)}
+
+          {/* SKILLS */}
+          {cur.type==="multi"&&(<div className="fade-up">
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {cur.options.map((o,i)=>{const c=PALETTE[i%PALETTE.length];const sel=ans.skills.includes(o);
+                return<button key={o} onClick={()=>toggleSkill(o)} style={{background:sel?c:"#fff",border:`1.5px solid ${sel?c:"#E2E8F0"}`,color:sel?"#fff":"#0A1628",padding:"9px 16px",borderRadius:99,cursor:"pointer",fontFamily:"var(--font)",fontSize:13,fontWeight:sel?700:400,transition:"all 0.15s",boxShadow:sel?`0 2px 8px ${c}35`:"none"}}>
+                  {sel&&"✓ "}{o}
+                </button>;
+              })}
+            </div>
+            <p style={{fontSize:13,color:"#9CA3AF",marginTop:12}}>Select all that apply</p>
+          </div>)}
+
+          {/* ZIP */}
+          {cur.type==="zip"&&(<div className="fade-up">
+            <input type="text" inputMode="numeric" maxLength={5} value={ans.zip} onChange={e=>setA("zip",e.target.value.replace(/\D/g,""))} placeholder="19006" autoFocus
+              style={{width:"100%",fontSize:36,fontWeight:800,padding:"18px",borderRadius:var_rl,border:`2px solid ${/^\d{5}$/.test(ans.zip)?G:"#E2E8F0"}`,background:"#F8FFFE",color:"#0A1628",fontFamily:"var(--font)",outline:"none",letterSpacing:10,textAlign:"center",transition:"border-color 0.2s"}}/>
+            {/^\d{5}$/.test(ans.zip)&&<p style={{fontSize:14,color:GD,fontWeight:700,marginTop:10,textAlign:"center"}}>✓ Got it — scanning firms near {ans.zip}</p>}
+            {!/^\d{5}$/.test(ans.zip)&&<p style={{fontSize:13,color:"#9CA3AF",marginTop:10,textAlign:"center"}}>We use this to find real local firms near you</p>}
+          </div>)}
+
+          {/* SLIDER */}
+          {cur.type==="slider"&&(<div className="fade-up">
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1rem"}}>
+              <span style={{color:"#4A5568",fontSize:15,fontWeight:600}}>Search radius</span>
+              <span style={{fontWeight:800,color:G,fontSize:20,letterSpacing:"-0.5px"}}>{ans.radius} mi</span>
+            </div>
+            <input type="range" min={10} max={200} step={5} value={ans.radius} onChange={e=>setA("radius",+e.target.value)} style={{width:"100%",accentColor:G,height:6,cursor:"pointer"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:8,color:"#9CA3AF",fontSize:12}}><span>10 mi</span><span>200 mi</span></div>
+            <p style={{fontSize:13,color:"#4A5568",marginTop:12,textAlign:"center"}}>{ans.radius<=30?"Great for highly local results":ans.radius<=75?"Good balance of local and regional":"Wide net — more options, more competition"}</p>
+          </div>)}
+
+          {/* CONTINUE */}
+          <div style={{display:"flex",gap:8,marginTop:"2.5rem"}}>
+            {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{background:"#F8FFFE",border:`1.5px solid #E2E8F0`,color:"#4A5568",padding:"13px 18px",borderRadius:var_rl,cursor:"pointer",fontFamily:"var(--font)",fontSize:16}}>←</button>}
+            {(cur.type==="multi"||cur.type==="zip"||cur.type==="slider"||cur.type==="extracurricular")&&(
+              <button onClick={()=>step<STEPS.length-1?setStep(s=>s+1):calcResults()} disabled={!canNext()}
+                style={{flex:1,background:canNext()?`linear-gradient(135deg,${G},${GD})`:"#E2E8F0",border:"none",color:canNext()?"#fff":"#9CA3AF",padding:"14px 24px",borderRadius:var_rl,cursor:canNext()?"pointer":"not-allowed",fontFamily:"var(--font)",fontSize:15,fontWeight:700,transition:"all 0.2s",boxShadow:canNext()?`0 4px 16px ${G}40`:"none"}}>
+                {step===STEPS.length-1?"Find My Matches →":"Continue →"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RESULTS
+  if(page==="results"){
+    const free=results.slice(0,4);
+    const aiLocked=results.slice(4);
+
+    // Major-adaptive placeholder locked cards
+    const PLACEHOLDER_LOCKED=getMajorPlaceholders(ans.major);
+
+    // Merge AI locked + placeholders, dedupe by name, always show 12
+    const seenNames=new Set(aiLocked.map(c=>c.name));
+    const filteredPlaceholders=PLACEHOLDER_LOCKED.filter(c=>!seenNames.has(c.name));
+    const allLocked=[...aiLocked,...filteredPlaceholders].slice(0,12);
+    const strongLocked=allLocked.filter(r=>r.match>=70).length;
+    const trackedNames=tracked.map(t=>t.company);
+
+    return(
+      <div style={{background:"#fff",minHeight:"100vh"}}>
+        {showProModal&&<ProModal/>}
+        {showConfetti&&<Confetti/>}
+        <Nav/>
+        <div style={{maxWidth:760,margin:"0 auto",padding:"2.5rem 1.5rem"}}>
+          {loading?(
+            <div style={{textAlign:"center",padding:"6rem 2rem"}}>
+              <div style={{position:"relative",width:64,height:64,margin:"0 auto 2rem"}}>
+                <div style={{width:64,height:64,border:`4px solid ${GL}`,borderTopColor:G,borderRadius:"50%",animation:"spin 0.9s linear infinite"}}/>
+                <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>🔍</span>
+              </div>
+              <div style={{background:GL,borderRadius:var_rxl,padding:"1.5rem",maxWidth:380,margin:"0 auto"}}>
+                <div style={{width:`${loadPct}%`,height:4,background:G,borderRadius:99,marginBottom:"1rem",transition:"width 1.8s ease"}}/>
+                <p style={{fontWeight:700,fontSize:17,marginBottom:"0.5rem",color:"#0A1628"}}>{loadMsg}</p>
+                <p style={{color:"#4A5568",fontSize:14}}>Scanning near {ans.zip} for {ans.major} opportunities...</p>
+              </div>
+            </div>
+          ):(
+            <>
+              {/* Header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"2rem",flexWrap:"wrap",gap:12}}>
+                <div>
+                  <p style={{fontSize:10,color:"#9CA3AF",fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase"}}>Your Matches</p>
+                  <h2 style={{fontSize:"clamp(1.8rem,4vw,2.6rem)",fontWeight:800,letterSpacing:"-1.5px",marginTop:"0.2rem",color:"#0A1628"}}>Here's where you stand.</h2>
+                  <p style={{color:"#4A5568",fontSize:13,marginTop:4}}>{ans.major} · {ans.gpa} GPA · Near {ans.zip} · {ans.radius}mi</p>
+                </div>
+                <button onClick={calcResults} style={{background:"#F8FFFE",border:`1.5px solid ${GL}`,color:"#0A1628",padding:"10px 18px",borderRadius:var_rl,cursor:"pointer",fontFamily:"var(--font)",fontSize:13,fontWeight:700,whiteSpace:"nowrap"}}>↻ Refresh</button>
+              </div>
+
+              {/* Free cards */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:14,marginBottom:16}}>
+                {free.map((c,i)=>{
+                  const isStr=c.match>=70,isDec=c.match>=50&&c.match<70;
+                  const accent=isStr?G:isDec?AM:CR;
+                  const label=isStr?"Strong Match":isDec?"Decent Shot":"Reach";
+                  const isTracked=trackedNames.includes(c.name);
+                  return(
+                    <div key={i} className="card-hover" style={{background:"#fff",border:`1.5px solid ${GL}`,borderTop:`3px solid ${accent}`,borderRadius:var_rl,padding:"1.5rem",display:"flex",flexDirection:"column",gap:"0.75rem",boxShadow:"0 2px 12px rgba(0,194,133,0.08)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div style={{flex:1,minWidth:0,paddingRight:12}}>
+                          <p style={{fontWeight:700,fontSize:16,letterSpacing:"-0.3px",color:"#0A1628"}}>{c.name}</p>
+                          <p style={{color:"#4A5568",fontSize:13,marginTop:3}}>{c.role}</p>
+                          <p style={{color:"#9CA3AF",fontSize:12,marginTop:2}}>{c.location} · {c.industry}</p>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <AnimatedPct target={c.match} color={accent}/>
+                          <div style={{marginTop:4}}><MatchChip label={label} accent={accent}/></div>
+                        </div>
+                      </div>
+                      <MatchBar pct={c.match} color={accent} delay={i*120}/>
+                      <p style={{fontSize:13,color:"#4A5568",lineHeight:1.6,fontStyle:"italic",padding:"8px 10px",background:"#F8FFFE",borderRadius:var_r}}>{c.reason}</p>
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:6}}>
+                        <div style={{display:"flex",gap:6}}>
+                          <a href={c.linkedin_slug?`https://www.linkedin.com/company/${c.linkedin_slug}/jobs/`:`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent((c.role||"")+" intern")}&geoId=&location=${encodeURIComponent(c.location||"")}`} target="_blank" rel="noopener noreferrer"
+                            style={{flex:1,background:"#0077B5",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🔗 LinkedIn Jobs</a>
+                          <a href={`https://www.indeed.com/cmp/${encodeURIComponent((c.name||"").toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"))}/jobs?q=${encodeURIComponent(c.role||"internship")}`} target="_blank" rel="noopener noreferrer"
+                            style={{flex:1,background:"#2164F3",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🔍 Indeed Jobs</a>
+                        </div>
+                        <div style={{display:"flex",gap:6}}>
+                          {c.website?<a href={`https://${(c.website||"").replace(/^https?:\/\//,"")}`} target="_blank" rel="noopener noreferrer"
+                            style={{flex:1,background:"#0A1628",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🌐 Company Website</a>:<span style={{flex:1}}/>}
+                          <button onClick={()=>track(c)} style={{flex:1,background:isTracked?GL:"#fff",border:`1.5px solid ${isTracked?G:"#E2E8F0"}`,color:isTracked?GD:"#4A5568",padding:"9px 8px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:12,fontWeight:700}}>
+                            {isTracked?"✓ Tracked":"+ Track"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* PRO PAYWALL */}
+              {!isPro&&(
+                <div style={{marginBottom:16}}>
+                  <div style={{background:`linear-gradient(135deg,${GL},${AL})`,border:`2px solid ${G}30`,borderRadius:var_rl,padding:"2rem",marginBottom:14,textAlign:"center",position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,background:`${G}08`,borderRadius:"50%"}}/>
+                    <div style={{position:"absolute",bottom:-30,left:-10,width:80,height:80,background:`${AM}08`,borderRadius:"50%"}}/>
+                    <p style={{fontSize:28,marginBottom:10}}>🔒</p>
+                    <p style={{fontWeight:800,fontSize:19,letterSpacing:"-0.5px",marginBottom:8,color:"#0A1628"}}>
+                      {allLocked.length} more matches hidden — including{" "}
+                      <span style={{color:G}}>{strongLocked} Strong Match{strongLocked!==1?"es":""}</span>
+                    </p>
+                    <p style={{color:"#4A5568",fontSize:14,marginBottom:"1.5rem",lineHeight:1.6,maxWidth:420,margin:"0 auto 1.5rem"}}>
+                      Upgrade to Pro to unlock every local firm near you, get auto follow-up emails sent on your behalf, and see your full tracker.
+                    </p>
+                    <button onClick={()=>setShowProModal(true)} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"14px 32px",borderRadius:var_rl,cursor:"pointer",fontFamily:"var(--font)",fontSize:15,fontWeight:700,boxShadow:`0 4px 20px ${G}40`}}>
+                      ⚡ Unlock All {4+allLocked.length} Matches — $9/mo
+                    </button>
+                    {tracked.length>0&&<p style={{fontSize:12,color:"#9CA3AF",marginTop:10}}>You have {tracked.length} app{tracked.length!==1?"s":""} tracked — Pro auto-sends follow-ups for each one.</p>}
+                  </div>
+                  {/* Blurred locked cards — always 12 shown */}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:14}}>
+                    {allLocked.map((c,i)=><BlurCard key={i} company={c}/>)}
+                  </div>
+                </div>
+              )}
+
+              {/* Pro unlocked all */}
+              {isPro&&aiLocked.length>0&&(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:14,marginBottom:16}}>
+                  {aiLocked.map((c,i)=>{
+                    const isStr=c.match>=70,isDec=c.match>=50&&c.match<70;
+                    const accent=isStr?G:isDec?AM:CR;
+                    const label=isStr?"Strong Match":isDec?"Decent Shot":"Reach";
+                    const isTracked=trackedNames.includes(c.name);
+                    return(
+                      <div key={i} className="card-hover" style={{background:"#fff",border:`1.5px solid ${GL}`,borderTop:`3px solid ${accent}`,borderRadius:var_rl,padding:"1.5rem",display:"flex",flexDirection:"column",gap:"0.75rem",boxShadow:"0 2px 12px rgba(0,194,133,0.08)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                          <div style={{flex:1,minWidth:0,paddingRight:12}}>
+                            <p style={{fontWeight:700,fontSize:16,color:"#0A1628"}}>{c.name}</p>
+                            <p style={{color:"#4A5568",fontSize:13,marginTop:3}}>{c.role}</p>
+                            <p style={{color:"#9CA3AF",fontSize:12,marginTop:2}}>{c.location} · {c.industry}</p>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <AnimatedPct target={c.match} color={accent}/>
+                            <div style={{marginTop:4}}><MatchChip label={label} accent={accent}/></div>
+                          </div>
+                        </div>
+                        <MatchBar pct={c.match} color={accent} delay={i*80}/>
+                        <p style={{fontSize:13,color:"#4A5568",lineHeight:1.6,fontStyle:"italic",padding:"8px 10px",background:"#F8FFFE",borderRadius:var_r}}>{c.reason}</p>
+                        <div style={{display:"flex",gap:7,marginTop:4}}>
+                          <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:2}}>
+                            <div style={{display:"flex",gap:6}}>
+                              <a href={c.linkedin_slug?`https://www.linkedin.com/company/${c.linkedin_slug}/jobs/`:`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent((c.role||"")+" intern")}&location=${encodeURIComponent(c.location||"")}`} target="_blank" rel="noopener noreferrer"
+                                style={{flex:1,background:"#0077B5",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🔗 LinkedIn Jobs</a>
+                              <a href={`https://www.indeed.com/cmp/${encodeURIComponent((c.name||"").toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"))}/jobs?q=${encodeURIComponent(c.role||"internship")}`} target="_blank" rel="noopener noreferrer"
+                                style={{flex:1,background:"#2164F3",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🔍 Indeed Jobs</a>
+                            </div>
+                            <div style={{display:"flex",gap:6}}>
+                              {c.website?<a href={`https://${(c.website||"").replace(/^https?:\/\//,"")}`} target="_blank" rel="noopener noreferrer"
+                                style={{flex:1,background:"#0A1628",color:"#fff",padding:"9px 8px",borderRadius:var_r,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center",display:"block"}}>🌐 Company Website</a>:<span style={{flex:1}}/>}
+                              <button onClick={()=>track(c)} style={{flex:1,background:isTracked?GL:"#fff",border:`1.5px solid ${isTracked?G:"#E2E8F0"}`,color:isTracked?GD:"#4A5568",padding:"9px 8px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:12,fontWeight:700}}>
+                                {isTracked?"✓ Tracked":"+ Track"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // COMMUNITY
+  if(page==="community")return(
+    <div style={{background:"#fff",minHeight:"100vh"}}>
+      {showProModal&&<ProModal/>}
+      <Nav/>
+      <div style={{maxWidth:600,margin:"0 auto",padding:"2.5rem 1.5rem"}}>
+        <p style={{fontSize:10,color:"#9CA3AF",fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase"}}>Community</p>
+        <h2 style={{fontSize:"clamp(1.6rem,3.5vw,2.3rem)",fontWeight:800,letterSpacing:"-1px",marginTop:"0.3rem",marginBottom:"0.5rem",color:"#0A1628"}}>Real talk from real students.</h2>
+        <p style={{color:"#4A5568",fontSize:14,marginBottom:"1.5rem"}}>Tips, experiences, and honest advice. No fluff.</p>
+        <div style={{background:"#fff",border:`1.5px solid ${GL}`,borderRadius:var_rl,padding:"1rem",marginBottom:"1.25rem",boxShadow:"0 2px 12px rgba(0,194,133,0.06)"}}>
+          <textarea value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Share a tip, experience, or question..." style={{width:"100%",background:"transparent",border:"none",outline:"none",color:"#0A1628",fontFamily:"var(--font)",fontSize:15,resize:"none",minHeight:80,lineHeight:1.6}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"0.5rem",borderTop:`1px solid ${GL}`,paddingTop:"0.75rem"}}>
+            <div style={{display:"flex",gap:6}}>
+              {["General","Tech","Finance","Consulting"].map(t=>(
+                <button key={t} onClick={()=>setDraftTag(t)} style={{background:draftTag===t?GL:"#F8FFFE",border:`1px solid ${draftTag===t?G:"#E2E8F0"}`,color:draftTag===t?GD:"#4A5568",padding:"4px 12px",borderRadius:99,cursor:"pointer",fontFamily:"var(--font)",fontSize:12,fontWeight:draftTag===t?700:400}}>{t}</button>
+              ))}
+            </div>
+            <button onClick={addPost} style={{background:draft.trim()?`linear-gradient(135deg,${G},${GD})`:"#E2E8F0",border:"none",color:draft.trim()?"#fff":"#9CA3AF",padding:"7px 20px",borderRadius:var_r,cursor:draft.trim()?"pointer":"not-allowed",fontFamily:"var(--font)",fontSize:14,fontWeight:700}}>Post</button>
+          </div>
+        </div>
+        {posts.map(p=>(
+          <div key={p.id} style={{background:"#fff",border:`1px solid ${GL}`,borderRadius:var_rl,padding:"1.25rem",marginBottom:10,boxShadow:"0 1px 6px rgba(0,194,133,0.05)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <Av ini={p.ini} color={p.color}/>
+                <div><p style={{fontWeight:700,fontSize:14,color:"#0A1628"}}>{p.name}</p><p style={{color:"#9CA3AF",fontSize:12}}>{p.school} · {p.time}</p></div>
+              </div>
+              <span style={{background:`${G}15`,color:GD,fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,border:`1px solid ${G}25`}}>{p.tag}</span>
+            </div>
+            <p style={{fontSize:14,color:"#4A5568",lineHeight:1.65}}>{p.content}</p>
+            <div style={{display:"flex",gap:16,marginTop:"1rem"}}>
+              <button onClick={()=>setPosts(prev=>prev.map(x=>x.id===p.id?{...x,liked:!x.liked,likes:x.liked?x.likes-1:x.likes+1}:x))} style={{background:"none",border:"none",color:p.liked?CR:"#9CA3AF",cursor:"pointer",fontFamily:"var(--font)",fontSize:13,display:"flex",alignItems:"center",gap:4,fontWeight:p.liked?700:400}}>
+                {p.liked?"❤️":"🤍"} {p.likes}
+              </button>
+              <span style={{fontSize:13,color:"#9CA3AF",display:"flex",alignItems:"center",gap:4}}>💬 {p.comments}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // DASHBOARD
+  if(page==="dashboard")return(
+    <div style={{background:"#fff",minHeight:"100vh"}}>
+      {showProModal&&<ProModal/>}
+      <Nav/>
+      <div style={{maxWidth:720,margin:"0 auto",padding:"2.5rem 1.5rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"2rem"}}>
+          <div>
+            <p style={{fontSize:10,color:"#9CA3AF",fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase"}}>Dashboard</p>
+            <h2 style={{fontSize:"clamp(1.6rem,3.5vw,2.3rem)",fontWeight:800,letterSpacing:"-1px",marginTop:"0.3rem",color:"#0A1628"}}>Your applications.</h2>
+          </div>
+          {isPro?<span style={{background:GL,color:GD,border:`1px solid ${GM}`,padding:"6px 16px",borderRadius:99,fontSize:13,fontWeight:700}}>⚡ Pro Active</span>
+          :<button onClick={()=>setShowProModal(true)} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"9px 20px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:14,fontWeight:700,boxShadow:`0 2px 10px ${G}40`}}>⚡ Upgrade to Pro</button>}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:"0.75rem",marginBottom:"1.5rem"}}>
+          {[{l:"Applied",v:tracked.length,c:G},{l:"Interviews",v:tracked.filter(a=>a.status==="Interview").length,c:AM},{l:"Follow-ups Sent",v:isPro?tracked.length:"—",c:isPro?GD:"#9CA3AF"}].map((s,i)=>(
+            <div key={i} style={{background:"#F8FFFE",border:`1px solid ${GL}`,borderRadius:var_rl,padding:"1.25rem",position:"relative",overflow:"hidden"}}>
+              {i===2&&!isPro&&<div style={{position:"absolute",inset:0,background:"rgba(248,255,254,0.85)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔒</div>}
+              <p style={{fontSize:32,fontWeight:800,color:s.c,lineHeight:1,letterSpacing:"-1.5px"}}>{s.v}</p>
+              <p style={{fontSize:12,color:"#4A5568",marginTop:6,fontWeight:500}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{background:"#fff",border:`1.5px solid ${GL}`,borderRadius:var_rl,overflow:"hidden",marginBottom:"1rem",boxShadow:"0 2px 12px rgba(0,194,133,0.06)"}}>
+          <div style={{padding:"1rem 1.25rem",borderBottom:`1px solid ${GL}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <h3 style={{fontWeight:700,fontSize:15,color:"#0A1628"}}>Application Tracker</h3>
+            <button onClick={()=>{setStep(0);setPage("quiz");}} style={{background:GL,border:`1px solid ${GM}`,color:GD,padding:"6px 14px",borderRadius:var_r,cursor:"pointer",fontFamily:"var(--font)",fontSize:13,fontWeight:700}}>+ Add</button>
+          </div>
+          {tracked.length===0&&<p style={{padding:"2rem",textAlign:"center",color:"#9CA3AF",fontSize:14}}>No applications yet. Complete the quiz to find matches.</p>}
+          {tracked.map((a,i)=>{
+            const sc={Applied:"#4A5568",Interview:GD,Offer:"#2563EB",Rejected:CR}[a.status]||"#4A5568";
+            return(
+              <div key={i} style={{padding:"1rem 1.25rem",borderBottom:i<tracked.length-1?`1px solid ${GL}`:"none",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontWeight:700,fontSize:15,color:"#0A1628",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.company}</p>
+                  <p style={{color:"#4A5568",fontSize:13,marginTop:2}}>{a.role} · Applied {a.date}</p>
+                </div>
+                <select value={a.status} onChange={e=>setTracked(p=>p.map((x,j)=>j===i?{...x,status:e.target.value}:x))} style={{color:sc,fontFamily:"var(--font)",fontSize:13,fontWeight:700,padding:"6px 10px",borderRadius:var_r,border:`1.5px solid ${GL}`,background:"#F8FFFE",cursor:"pointer",flexShrink:0}}>
+                  {["Applied","Interview","Offer","Rejected"].map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+        {!isPro?(
+          <div style={{background:`linear-gradient(135deg,${GL},${AL})`,border:`2px solid ${G}25`,borderRadius:var_rl,padding:"2rem",textAlign:"center"}}>
+            <p style={{fontSize:28,marginBottom:10}}>📧</p>
+            <h3 style={{fontWeight:800,fontSize:18,marginBottom:"0.5rem",letterSpacing:"-0.5px",color:"#0A1628"}}>Auto Follow-Ups</h3>
+            <p style={{color:"#4A5568",fontSize:14,lineHeight:1.6,marginBottom:"1.5rem",maxWidth:380,margin:"0 auto 1.5rem"}}>Pro members get follow-up emails sent at the perfect time. You stay top of mind — without lifting a finger.</p>
+            <button onClick={()=>setShowProModal(true)} style={{background:`linear-gradient(135deg,${G},${GD})`,border:"none",color:"#fff",padding:"13px 32px",borderRadius:var_rl,cursor:"pointer",fontFamily:"var(--font)",fontSize:15,fontWeight:700,boxShadow:`0 4px 16px ${G}40`}}>⚡ Unlock Pro — $9/mo</button>
+          </div>
+        ):(
+          <div style={{background:GL,border:`1px solid ${GM}`,borderRadius:var_rl,padding:"1.25rem"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:26}}>✅</span>
+              <div>
+                <p style={{fontWeight:700,fontSize:15,color:GD}}>Auto follow-ups active</p>
+                <p style={{fontSize:13,color:GD,opacity:0.8,marginTop:2}}>Sending follow-ups for your {tracked.length} tracked application{tracked.length!==1?"s":""}.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>

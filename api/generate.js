@@ -1,36 +1,36 @@
-// InternIQ backend — secure proxy to the Anthropic API.
-// This runs on Vercel's servers (NOT the browser), so the API key stays secret
-// and there's no CORS problem. The browser calls THIS endpoint (/api/generate),
-// and this function calls Anthropic on the browser's behalf.
+// InternIQ backend — secure proxy to the Anthropic API (modern Vercel format).
+// Handles POST from the browser app, calls Anthropic with the secret key, returns the text.
  
-export default async function handler(req, res) {
-  // Allow the browser app to call this endpoint
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+export const config = { runtime: "nodejs" };
  
-  // Browsers send a preflight OPTIONS request first — answer it OK
+export default async function handler(req) {
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json"
+  };
+ 
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return new Response(null, { status: 200, headers: cors });
   }
- 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: cors });
   }
  
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Server is missing its API key. Add ANTHROPIC_API_KEY in Vercel settings." });
+    return new Response(JSON.stringify({ error: "Missing ANTHROPIC_API_KEY in Vercel settings." }), { status: 500, headers: cors });
   }
  
   try {
-    // The browser sends { prompt, max_tokens }. We forward it to Anthropic with the secret key.
-    const { prompt, max_tokens } = req.body || {};
+    const body = await req.json();
+    const { prompt, max_tokens } = body || {};
     if (!prompt) {
-      return res.status(400).json({ error: "Missing prompt" });
+      return new Response(JSON.stringify({ error: "Missing prompt" }), { status: 400, headers: cors });
     }
  
-    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,22 +44,14 @@ export default async function handler(req, res) {
       })
     });
  
-    const data = await anthropicResp.json();
- 
-    if (!anthropicResp.ok) {
-      // Pass Anthropic's error back so we can see what went wrong
-      return res.status(anthropicResp.status).json({ error: data.error?.message || "Anthropic API error", detail: data });
+    const data = await r.json();
+    if (!r.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || "Anthropic error", detail: data }), { status: r.status, headers: cors });
     }
  
-    // Pull out the text the model returned
-    const text = (data.content || [])
-      .filter(b => b.type === "text")
-      .map(b => b.text)
-      .join("");
- 
-    return res.status(200).json({ text });
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    return new Response(JSON.stringify({ text }), { status: 200, headers: cors });
   } catch (err) {
-    return res.status(500).json({ error: "Server error", detail: String(err) });
+    return new Response(JSON.stringify({ error: "Server error", detail: String(err) }), { status: 500, headers: cors });
   }
 }
- 

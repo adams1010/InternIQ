@@ -1,0 +1,69 @@
+// InternIQ backend — secure proxy to the Adzuna jobs API.
+// Takes a company name + location, returns the best matching real apply URL.
+
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const appId = process.env.ADZUNA_APP_ID;
+  const appKey = process.env.ADZUNA_APP_KEY;
+  if (!appId || !appKey) {
+    return res.status(500).json({ error: "Missing ADZUNA_APP_ID or ADZUNA_APP_KEY in Vercel settings." });
+  }
+
+  try {
+    let body = req.body;
+    if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
+    const company = (body && body.company) || "";
+    const role = (body && body.role) || "intern";
+    const location = (body && body.location) || "";
+    if (!company) return res.status(400).json({ error: "Missing company" });
+
+    // Adzuna US job search: filter by company-name keyword, optionally location, get intern roles
+    const params = new URLSearchParams({
+      app_id: appId,
+      app_key: appKey,
+      results_per_page: "10",
+      what: `${role} intern`,
+      company: company,
+      "content-type": "application/json"
+    });
+    if (location) params.set("where", location);
+
+    const url = `https://api.adzuna.com/v1/api/jobs/us/search/1?${params.toString()}`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: data.exception || "Adzuna error", detail: data });
+    }
+
+    // Pick the best match: first internship-ish posting from the right company
+    const results = (data.results || []);
+    const best = results[0] || null;
+
+    if (!best) {
+      return res.status(200).json({ found: false, applyUrl: null, jobs: [] });
+    }
+
+    return res.status(200).json({
+      found: true,
+      applyUrl: best.redirect_url,
+      title: best.title,
+      location: best.location && best.location.display_name,
+      company: best.company && best.company.display_name,
+      jobs: results.slice(0, 5).map(j => ({
+        title: j.title,
+        applyUrl: j.redirect_url,
+        location: j.location && j.location.display_name,
+        company: j.company && j.company.display_name
+      }))
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Server error: " + String(err) });
+  }
+}

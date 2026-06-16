@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "api/generate.js": { "maxDuration": 10 },
+    "api/jobs.js": { "maxDuration": 10 }
+  }
+}
